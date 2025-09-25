@@ -1,0 +1,5 @@
+Final Model Evaluation Metrics:
+Mean Squared Error (MSE): 4.543779
+Root Mean Squared Error (RMSE): 2.131614
+Mean Absolute Error (MAE): 1.685991
+R-squared (R2): 0.987945
