@@ -43,9 +43,11 @@ In `main.cpp`, you can switch between **regression** and **classification** mode
 Simply comment or uncomment the corresponding lines depending on the type of model you want to use:
 
 ```cpp
-// For regression:
-float result = mlp->PredictRegression(input_data);
+// ====== Mode Regression ======
+float reg_result = mlp->PredictRegression(input_data);
+std::cout << "Regression result: " << reg_result << std::endl;
 
-// For classification:
-// int result = mlp->PredictClassification(input_data);
+// ====== Mode Classification ======
+// int cls_result = mlp->PredictClassification(input_data);
+// std::cout << "Classification result: class " << cls_result << std::endl;
 ```
