@@ -2,27 +2,47 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <iostream>
 
 MLPModel::MLPModel(const std::string& model_path, 
                    const std::string& scaler_x_path,
-                   const std::string& scaler_y_path) 
-    : env_(ORT_LOGGING_LEVEL_WARNING, "ONNX_NN"), session_options_(), session_(nullptr)
+                   const std::string& scaler_y_path,
+                   Mode mode) 
+    : env_(ORT_LOGGING_LEVEL_WARNING, "ONNX_NN"),
+      session_options_(),
+      session_(nullptr),
+      mode_(mode)
 {
+    // Load ONNX model
     session_options_.SetIntraOpNumThreads(1);
     session_ = std::make_unique<Ort::Session>(env_, model_path.c_str(), session_options_);
 
+    // Load feature scaler (X)
     mean_x_ = load_scaler_row(scaler_x_path, 0);
     std_x_  = load_scaler_row(scaler_x_path, 1);
 
-    auto mean_y_vec = load_scaler_row(scaler_y_path, 0);
-    auto std_y_vec  = load_scaler_row(scaler_y_path, 1);
+    // Load target scaler (Y)
+    if (mode_ == Mode::REGRESSION) {
+        auto mean_y_vec = load_scaler_row(scaler_y_path, 0);
+        auto std_y_vec  = load_scaler_row(scaler_y_path, 1);
 
-    if (mean_y_vec.empty() || std_y_vec.empty()) {
-        throw std::runtime_error("Scaler_y file is invalid or empty.");
+        if (mean_y_vec.empty() || std_y_vec.empty()) {
+            throw std::runtime_error("❌ Scaler_y file is invalid or missing for regression mode.");
+        }
+
+        mean_y_ = mean_y_vec[0];
+        std_y_  = std_y_vec[0];
     }
+    else if (mode_ == Mode::CLASSIFICATION) {
+        std::ifstream f(scaler_y_path);
+        if (f.good()) {
+            auto mean_y_vec = load_scaler_row(scaler_y_path, 0);
+            auto std_y_vec  = load_scaler_row(scaler_y_path, 1);
 
-    mean_y_ = mean_y_vec[0];
-    std_y_  = std_y_vec[0];
+        } else {
+            // scaler_y tidak ada → abaikan
+        }
+    }
 }
 
 std::vector<float> MLPModel::load_scaler_row(const std::string& filename, int row) {
@@ -71,6 +91,10 @@ float MLPModel::unscale_output(float scaled_y) {
 
 // ============================= Regression ==============================
 float MLPModel::PredictRegression(const std::vector<float>& input_x) {
+    if (mode_ != Mode::REGRESSION) {
+        throw std::runtime_error("❌ Model is not in regression mode.");
+    }
+
     std::vector<float> input_scaled = scale_input(input_x);
     std::vector<int64_t> input_shape = {1, static_cast<int64_t>(input_scaled.size())};
 
@@ -95,6 +119,10 @@ float MLPModel::PredictRegression(const std::vector<float>& input_x) {
 
 // ============================= Classification ==============================
 int MLPModel::PredictClassification(const std::vector<float>& input_x) {
+    if (mode_ != Mode::CLASSIFICATION) {
+        throw std::runtime_error("❌ Model is not in classification mode.");
+    }
+
     std::vector<float> input_scaled = scale_input(input_x);
     std::vector<int64_t> input_shape = {1, static_cast<int64_t>(input_scaled.size())};
 

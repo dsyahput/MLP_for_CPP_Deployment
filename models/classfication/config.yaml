@@ -1,0 +1,16 @@
+data:
+  num_classes: 4
+  path: dataset/mobile_phone.csv
+  target_column: price_range
+  test_size: 0.2
+model:
+  activation: tanh
+  hidden_layers:
+  - 16
+  - 8
+  task: multiclass
+training:
+  batch_size: 16
+  learning_rate: 0.001
+  num_epochs: 500
+  patience: null
